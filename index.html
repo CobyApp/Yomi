@@ -1,0 +1,398 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Yomi · 일본어 요미카타 도우미</title>
+<style>
+  :root {
+    --bg: #faf8f4;
+    --card: #ffffff;
+    --text: #1a1a1a;
+    --muted: #777;
+    --accent: #c0392b;
+    --accent-soft: #f7e8e5;
+    --border: #ebe7df;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Hiragino Sans", "Yu Gothic", "Apple SD Gothic Neo", "Noto Sans CJK KR", sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+  }
+  header {
+    text-align: center;
+    padding: 2.2rem 1rem 0.5rem;
+  }
+  header h1 {
+    margin: 0;
+    font-size: 2rem;
+    letter-spacing: 0.08em;
+    color: var(--accent);
+  }
+  header p {
+    margin: 0.4rem 0 0;
+    color: var(--muted);
+    font-size: 0.9rem;
+  }
+  main {
+    max-width: 760px;
+    margin: 0 auto;
+    padding: 1rem 1.2rem 4rem;
+  }
+  textarea {
+    width: 100%;
+    min-height: 140px;
+    padding: 1rem;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    font-size: 1rem;
+    font-family: inherit;
+    resize: vertical;
+    background: var(--card);
+    color: var(--text);
+  }
+  textarea:focus { outline: 2px solid var(--accent); outline-offset: -1px; }
+  .controls {
+    display: flex;
+    align-items: center;
+    gap: 0.8rem;
+    margin-top: 0.6rem;
+    flex-wrap: wrap;
+  }
+  button {
+    padding: 0.7rem 1.5rem;
+    font-size: 0.95rem;
+    background: var(--accent);
+    color: white;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    font-family: inherit;
+  }
+  button:hover { background: #a73224; }
+  button:disabled { background: #cdb4b0; cursor: not-allowed; }
+  button.secondary {
+    background: transparent;
+    color: var(--muted);
+    border: 1px solid var(--border);
+  }
+  button.secondary:hover { background: var(--card); color: var(--text); }
+  #status {
+    color: var(--muted);
+    font-size: 0.85rem;
+    min-height: 1.2em;
+    flex: 1;
+  }
+  .output-section { margin-top: 2.2rem; }
+  .output-section h2 {
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 0.4rem;
+    margin: 1.8rem 0 1rem;
+  }
+  .rubied {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 1.4rem 1.6rem;
+    font-size: 1.25rem;
+    line-height: 2.6;
+    word-break: keep-all;
+  }
+  .rubied ruby rt {
+    font-size: 0.5em;
+    color: var(--muted);
+    font-weight: 400;
+  }
+  .rubied p { margin: 0 0 0.6em; }
+  .rubied p:last-child { margin-bottom: 0; }
+  .vocab {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 0.7rem;
+  }
+  .vocab-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 0.8rem 1rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+  }
+  .vocab-word {
+    font-size: 1.2rem;
+    line-height: 1.4;
+  }
+  .vocab-word ruby rt { font-size: 0.5em; color: var(--muted); }
+  .vocab-pos {
+    font-size: 0.7rem;
+    color: var(--muted);
+    align-self: flex-start;
+    padding: 0.05rem 0.45rem;
+    background: var(--accent-soft);
+    color: var(--accent);
+    border-radius: 999px;
+  }
+  .vocab-meaning {
+    font-size: 0.95rem;
+    color: var(--text);
+    margin-top: 0.2rem;
+  }
+  .vocab-meaning.loading { color: var(--muted); }
+  .empty {
+    color: var(--muted);
+    font-size: 0.9rem;
+    padding: 1rem;
+    text-align: center;
+  }
+  footer {
+    text-align: center;
+    color: var(--muted);
+    font-size: 0.75rem;
+    padding: 2rem 1rem;
+  }
+  footer a { color: var(--muted); }
+</style>
+</head>
+<body>
+<header>
+  <h1>読み · Yomi</h1>
+  <p>일본어 단락을 붙여넣으면 후리가나와 단어장을 만들어드려요</p>
+</header>
+<main>
+  <section>
+    <textarea id="input" placeholder="ここに日本語の文章を入力してください。&#10;&#10;例: 今日は朝から雨が降っていて、散歩に行くのをやめました。"></textarea>
+    <div class="controls">
+      <button id="process">변환하기</button>
+      <button id="clear" class="secondary" type="button">초기화</button>
+      <span id="status"></span>
+    </div>
+  </section>
+  <section class="output-section" id="output" hidden>
+    <h2>본문</h2>
+    <div id="rubied" class="rubied"></div>
+    <h2>단어장</h2>
+    <div id="vocab" class="vocab"></div>
+  </section>
+</main>
+<footer>
+  사전: kuromoji.js · 후리가나: kuroshiro.js · 번역: Google Translate
+</footer>
+
+<script src="https://cdn.jsdelivr.net/npm/kuroshiro@1.2.0/dist/kuroshiro.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/kuroshiro-analyzer-kuromoji@1.1.0/dist/kuroshiro-analyzer-kuromoji.min.js"></script>
+<script>
+  const DICT_PATH = "https://cdn.jsdelivr.net/npm/kuromoji@0.1.2/dict/";
+  const CACHE_KEY = "yomi_ko_translations_v1";
+
+  const $input = document.getElementById("input");
+  const $process = document.getElementById("process");
+  const $clear = document.getElementById("clear");
+  const $status = document.getElementById("status");
+  const $output = document.getElementById("output");
+  const $rubied = document.getElementById("rubied");
+  const $vocab = document.getElementById("vocab");
+
+  let kuroshiro = null;
+  let analyzer = null;
+  let initPromise = null;
+
+  let translationCache = {};
+  try { translationCache = JSON.parse(localStorage.getItem(CACHE_KEY) || "{}"); } catch (e) {}
+
+  function setStatus(msg) { $status.textContent = msg || ""; }
+
+  function saveCache() {
+    try { localStorage.setItem(CACHE_KEY, JSON.stringify(translationCache)); } catch (e) {}
+  }
+
+  function escapeHTML(s) {
+    return String(s).replace(/[&<>"']/g, c => ({
+      "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"
+    })[c]);
+  }
+
+  function katakanaToHiragana(s) {
+    return s.replace(/[ァ-ヶ]/g, c => String.fromCharCode(c.charCodeAt(0) - 0x60));
+  }
+
+  function hasKanji(s) { return /[一-鿿]/.test(s); }
+
+  async function ensureInit() {
+    if (kuroshiro) return;
+    if (!initPromise) {
+      setStatus("일본어 사전 로딩 중… 처음 한 번만 시간이 걸려요");
+      $process.disabled = true;
+      initPromise = (async () => {
+        const KuroshiroCtor = (window.Kuroshiro && window.Kuroshiro.default) || window.Kuroshiro;
+        const AnalyzerCtor = (window.KuromojiAnalyzer && window.KuromojiAnalyzer.default) || window.KuromojiAnalyzer;
+        if (typeof KuroshiroCtor !== "function" || typeof AnalyzerCtor !== "function") {
+          throw new Error("라이브러리 로드 실패");
+        }
+        analyzer = new AnalyzerCtor({ dictPath: DICT_PATH });
+        kuroshiro = new KuroshiroCtor();
+        await kuroshiro.init(analyzer);
+      })();
+    }
+    try {
+      await initPromise;
+    } finally {
+      $process.disabled = false;
+      setStatus("");
+    }
+  }
+
+  async function translateWord(word) {
+    if (translationCache[word] !== undefined) return translationCache[word];
+    try {
+      const url = `https://translate.googleapis.com/translate_a/single?client=gtx&sl=ja&tl=ko&dt=t&q=${encodeURIComponent(word)}`;
+      const res = await fetch(url);
+      if (!res.ok) throw new Error("translate http " + res.status);
+      const data = await res.json();
+      const translated = (data[0] || []).map(seg => seg[0]).join("").trim();
+      translationCache[word] = translated;
+      return translated;
+    } catch (e) {
+      console.warn("translate failed", word, e);
+      return "";
+    }
+  }
+
+  async function translateAll(words, onProgress) {
+    const concurrency = 5;
+    let idx = 0;
+    let done = 0;
+    async function worker() {
+      while (idx < words.length) {
+        const i = idx++;
+        await translateWord(words[i]);
+        done++;
+        if (onProgress) onProgress(done, words.length);
+      }
+    }
+    await Promise.all(Array.from({ length: concurrency }, worker));
+    saveCache();
+  }
+
+  function isContentWord(t) {
+    const pos = t.pos;
+    const detail = t.pos_detail_1;
+    if (pos === "名詞") {
+      if (["数", "非自立", "代名詞", "接尾", "特殊"].includes(detail)) return false;
+      return true;
+    }
+    if (pos === "動詞") {
+      if (detail === "非自立") return false;
+      return true;
+    }
+    if (pos === "形容詞") return true;
+    if (pos === "副詞") return true;
+    return false;
+  }
+
+  function posLabel(pos) {
+    return {
+      "名詞": "명사",
+      "動詞": "동사",
+      "形容詞": "형용사",
+      "副詞": "부사",
+    }[pos] || pos;
+  }
+
+  function renderRubied(html) {
+    const paragraphs = html.split(/\n{2,}/).map(p => "<p>" + p.replace(/\n/g, "<br>") + "</p>").join("");
+    $rubied.innerHTML = paragraphs;
+  }
+
+  function renderVocab(entries) {
+    if (!entries.length) {
+      $vocab.innerHTML = '<div class="empty">추출된 단어가 없어요</div>';
+      return;
+    }
+    $vocab.innerHTML = entries.map(e => {
+      const wordHTML = e.reading && e.reading !== e.word && hasKanji(e.word)
+        ? `<ruby>${escapeHTML(e.word)}<rt>${escapeHTML(e.reading)}</rt></ruby>`
+        : escapeHTML(e.word);
+      const meaning = e.meaning === undefined
+        ? '<span class="vocab-meaning loading">…</span>'
+        : `<span class="vocab-meaning">${escapeHTML(e.meaning || "—")}</span>`;
+      return `
+        <div class="vocab-card">
+          <div class="vocab-word">${wordHTML}</div>
+          <span class="vocab-pos">${escapeHTML(posLabel(e.pos))}</span>
+          ${meaning}
+        </div>
+      `;
+    }).join("");
+  }
+
+  async function process() {
+    const text = $input.value.trim();
+    if (!text) return;
+    $process.disabled = true;
+    try {
+      await ensureInit();
+      setStatus("후리가나 생성 중…");
+      const rubied = await kuroshiro.convert(text, { to: "hiragana", mode: "furigana" });
+      renderRubied(rubied);
+
+      setStatus("단어 추출 중…");
+      const tokens = await analyzer.parse(text);
+      const seen = new Set();
+      const entries = [];
+      for (const t of tokens) {
+        if (!isContentWord(t)) continue;
+        const word = t.basic_form && t.basic_form !== "*" ? t.basic_form : t.surface_form;
+        if (!word || seen.has(word)) continue;
+        if (word.length === 1 && !hasKanji(word)) continue;
+        seen.add(word);
+        const reading = t.reading && t.reading !== "*" ? katakanaToHiragana(t.reading) : "";
+        entries.push({ word, reading, pos: t.pos });
+      }
+      renderVocab(entries);
+      $output.hidden = false;
+
+      setStatus(`한국어 뜻 가져오는 중… (0/${entries.length})`);
+      await translateAll(entries.map(e => e.word), (done, total) => {
+        setStatus(`한국어 뜻 가져오는 중… (${done}/${total})`);
+      });
+      for (const e of entries) e.meaning = translationCache[e.word] || "";
+      renderVocab(entries);
+      setStatus("완료");
+      setTimeout(() => setStatus(""), 1500);
+    } catch (e) {
+      console.error(e);
+      setStatus("오류: " + e.message);
+    } finally {
+      $process.disabled = false;
+    }
+  }
+
+  $process.addEventListener("click", process);
+  $clear.addEventListener("click", () => {
+    $input.value = "";
+    $output.hidden = true;
+    $rubied.innerHTML = "";
+    $vocab.innerHTML = "";
+    setStatus("");
+    $input.focus();
+  });
+
+  $input.addEventListener("keydown", (e) => {
+    if ((e.metaKey || e.ctrlKey) && e.key === "Enter") {
+      e.preventDefault();
+      process();
+    }
+  });
+</script>
+</body>
+</html>
