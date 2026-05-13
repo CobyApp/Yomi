@@ -191,7 +191,9 @@
 <script src="https://cdn.jsdelivr.net/npm/kuroshiro@1.2.0/dist/kuroshiro.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/kuroshiro-analyzer-kuromoji@1.1.0/dist/kuroshiro-analyzer-kuromoji.min.js"></script>
 <script>
-  const DICT_PATH = "https://cdn.jsdelivr.net/npm/kuromoji@0.1.2/dict/";
+  // path-browserify in kuroshiro-analyzer-kuromoji breaks "https://..." (collapses // -> /),
+  // so we host the dict in the same origin and use a relative path.
+  const DICT_PATH = "dict/";
   const CACHE_KEY = "yomi_ko_translations_v1";
 
   const $input = document.getElementById("input");
